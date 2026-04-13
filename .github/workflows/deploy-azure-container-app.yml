@@ -1,0 +1,48 @@
+name: Deploy Quarkus App to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  RESOURCE_GROUP: rg-automotive-quarkus
+  CONTAINER_APP_NAME: automotive-quarkus-app
+  CONTAINERAPPS_ENVIRONMENT: automotive-env
+  ACR_NAME: automotivequarkusacr
+  IMAGE_NAME: quarkus-app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR Login
+        run: az acr login --name $ACR_NAME
+
+      - name: Build Docker image
+        run: docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} .
+
+      - name: Push image
+        run: docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
+
+      - name: Deploy to Azure Container App
+        run: |
+          az containerapp update ^
+            --name $CONTAINER_APP_NAME ^
+            --resource-group $RESOURCE_GROUP ^
+            --image $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
