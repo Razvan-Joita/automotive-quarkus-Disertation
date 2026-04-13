@@ -35,7 +35,7 @@ jobs:
         run: az acr login --name $ACR_NAME
 
       - name: Build Docker image
-        run: docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} .
+        run: docker build -f src/main/docker/Dockerfile.jvm -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} .
 
       - name: Push image
         run: docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
