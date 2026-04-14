@@ -1,4 +1,4 @@
-name: Build and Push Quarkus App to Docker Hub
+name: Build, Push, and Deploy Quarkus App to Azure Web App
 
 on:
   push:
@@ -7,13 +7,16 @@ on:
 
 env:
   IMAGE_NAME: automotive-quarkus-app
+  AZURE_WEBAPP_NAME: automotive-quarkus-app
+  AZURE_RESOURCE_GROUP: rg-automotive-quarkus
 
 jobs:
-  build-and-push:
+  build-push-deploy:
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -47,3 +50,30 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Azure login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Configure Azure Web App to use Docker Hub image
+        run: |
+          az webapp config container set \
+            --name "$AZURE_WEBAPP_NAME" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --container-image-name "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE_NAME}:${{ github.sha }}"
+
+      - name: Set required app settings
+        run: |
+          az webapp config appsettings set \
+            --name "$AZURE_WEBAPP_NAME" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --settings WEBSITES_PORT=8080
+
+      - name: Restart Azure Web App
+        run: |
+          az webapp restart \
+            --name "$AZURE_WEBAPP_NAME" \
+            --resource-group "$AZURE_RESOURCE_GROUP"

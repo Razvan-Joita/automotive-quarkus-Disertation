@@ -1,6 +1,5 @@
 package org.automotive.Quarkus.Disertation.services.impl;
 
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
