@@ -1,4 +1,4 @@
-name: Deploy Quarkus App to Azure Container Apps
+name: Build and Push Quarkus App to Docker Hub
 
 on:
   push:
@@ -6,18 +6,13 @@ on:
       - main
 
 env:
-  RESOURCE_GROUP: rg-automotive-quarkus
-  CONTAINER_APP_NAME: automotive-quarkus-app
-  CONTAINERAPPS_ENVIRONMENT: automotive-env
-  ACR_NAME: automotivequarkusacrrazvan
-  IMAGE_NAME: quarkus-app
+  IMAGE_NAME: automotive-quarkus-app
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write
       contents: read
 
     steps:
@@ -36,25 +31,19 @@ jobs:
       - name: Build Quarkus app
         run: ./mvnw clean package -DskipTests
 
-      - name: Azure Login
-        uses: azure/login@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: ACR Login
-        run: az acr login --name $ACR_NAME
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -f src/main/docker/Dockerfile.jvm -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} .
-
-      - name: Push image
-        run: docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
-
-      - name: Deploy to Azure Container App
         run: |
-          az containerapp update \
-            --name $CONTAINER_APP_NAME \
-            --resource-group $RESOURCE_GROUP \
-            --image $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
+          docker build -f src/main/docker/Dockerfile.jvm \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
