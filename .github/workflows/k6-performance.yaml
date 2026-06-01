@@ -1,0 +1,42 @@
+name: k6 performance tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Application base URL
+        required: true
+        default: https://automotive-quarkus-rz01.azurewebsites.net/
+      vus:
+        description: Virtual users
+        required: true
+        default: '25'
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare k6 output folder
+        run: mkdir -p k6/results
+
+      - name: Run k6 performance test
+        uses: grafana/run-k6-action@v1
+        with:
+          path: k6/automotive-api-smoke.js
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          BASIC_AUTH_USER: admin
+          BASIC_AUTH_PASSWORD: ${{ secrets.BASIC_AUTH_PASSWORD }}
+          VUS: ${{ inputs.vus }}
+          RAMP_UP: 1m
+          STEADY_STATE: 5m
+          RAMP_DOWN: 1m
+
+      - name: Upload k6 summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-results
+          path: k6/results
