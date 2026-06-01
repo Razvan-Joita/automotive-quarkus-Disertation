@@ -4,8 +4,8 @@ import { Trend, Rate } from 'k6/metrics';
 import encoding from 'k6/encoding';
 
 const BASE_URL = (__ENV.BASE_URL || 'http://localhost:8081').replace(/\/$/, '');
-const USERNAME = __ENV.BASIC_AUTH_USER || 'admin';
-const PASSWORD = __ENV.BASIC_AUTH_PASSWORD || 'admin123';
+const USERNAME = __ENV.USERNAME || __ENV.BASIC_AUTH_USER || 'admin';
+const PASSWORD = __ENV.PASSWORD || __ENV.BASIC_AUTH_PASSWORD || 'admin123';
 const THINK_TIME_SECONDS = Number(__ENV.THINK_TIME_SECONDS || '1');
 const authHeader = `Basic ${encoding.b64encode(`${USERNAME}:${PASSWORD}`)}`;
 
@@ -49,10 +49,18 @@ const apiLatency = new Trend('automotive_api_latency', true);
 const apiSuccess = new Rate('automotive_api_success');
 
 function paramsFor(path) {
-  const headers = { Accept: 'application/json' };
+  const headers = {};
+
+  if (path === '/q/metrics') {
+    headers.Accept = 'text/plain';
+  } else {
+    headers.Accept = 'application/json';
+  }
+
   if (path.startsWith('/api/')) {
     headers.Authorization = authHeader;
   }
+
   return { headers, tags: { endpoint: path } };
 }
 
