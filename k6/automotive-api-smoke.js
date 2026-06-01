@@ -87,9 +87,9 @@ export function handleSummary(data) {
 }
 
 function textSummary(data) {
-  const p95 = data.metrics.http_req_duration?.percentiles?.['95'] || 0;
-  const failed = data.metrics.http_req_failed?.rate || 0;
-  const checks = data.metrics.checks?.rate || 0;
+     const p95 = data.metrics.http_req_duration?.values?.['p(95)'] || 0;
+     const failed = data.metrics.http_req_failed?.values?.rate || 0;
+     const checks = data.metrics.checks?.values?.rate || 0;
   return [
     'Automotive Quarkus API k6 summary',
     `Target: ${BASE_URL}`,
