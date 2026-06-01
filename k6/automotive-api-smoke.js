@@ -74,7 +74,7 @@ export default function () {
 export function handleSummary(data) {
   return {
     'stdout': textSummary(data),
-    'k6/results/automotive-api-summary.json': JSON.stringify(data, null, 2),
+    '/scripts/results/automotive-api-summary.json': JSON.stringify(data, null, 2),
   };
 }
 
